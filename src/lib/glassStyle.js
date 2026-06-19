@@ -7,16 +7,17 @@
  */
 export function glassStyle(opacity) {
   const isSolid = opacity >= 0.98;
-  // Fill: nearly invisible at clear end, ramps up to full
-  const fill = isSolid ? 1 : opacity * 0.25;
-  // Blur: heavy when clear, tapers off as it becomes solid
-  const blur = isSolid ? 0 : Math.round(40 - opacity * 36);
+  // Fill: make visible transparency changes across the range
+  const fill = isSolid ? 1 : Math.min(1, Math.max(0.08, opacity * 0.75 + 0.12));
+  // Blur: stronger effect at low opacity, softer as it becomes solid
+  const blur = isSolid ? 0 : Math.round(42 - opacity * 38);
 
   return {
     backgroundColor: isSolid
       ? "hsl(var(--card))"
       : `hsl(var(--card) / ${fill})`,
-    backdropFilter: isSolid ? "none" : `blur(${blur}px) saturate(160%)`,
-    WebkitBackdropFilter: isSolid ? "none" : `blur(${blur}px) saturate(160%)`,
+    border: isSolid ? "1px solid transparent" : `1px solid rgba(255,255,255,${Math.min(0.24, fill)})`,
+    backdropFilter: isSolid ? "none" : `blur(${blur}px) saturate(180%)`,
+    WebkitBackdropFilter: isSolid ? "none" : `blur(${blur}px) saturate(180%)`,
   };
 }

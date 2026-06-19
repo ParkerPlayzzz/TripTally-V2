@@ -1,7 +1,5 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
-
 import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocalData } from "@/context/LocalDataContext";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, CheckCircle2, Circle, Pencil, X } from "lucide-react";
@@ -31,7 +29,6 @@ const EMPTY = {
 };
 
 export default function Wishlist() {
-  const qc = useQueryClient();
   const { opacity } = useTransparency();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -41,25 +38,7 @@ export default function Wishlist() {
   const [filterCity, setFilterCity] = useState("");
   const [filterPeriod, setFilterPeriod] = useState("");
 
-  const { data: items = [] } = useQuery({
-    queryKey: ["wishlist"],
-    queryFn: () => db.entities.WishlistItem.list("-created_date"),
-  });
-
-  const createMutation = useMutation({
-    mutationFn: (data) => db.entities.WishlistItem.create(data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["wishlist"] }); close(); },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => db.entities.WishlistItem.update(id, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["wishlist"] }); close(); },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id) => db.entities.WishlistItem.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["wishlist"] }),
-  });
+  const { wishlist: items = [], addWishlist, updateWishlist, deleteWishlist } = useLocalData();
 
   const openCreate = () => { setEditing(null); setForm(EMPTY); setOpen(true); };
   const openEdit = (item) => {
@@ -71,13 +50,14 @@ export default function Wishlist() {
 
   const handleSubmit = () => {
     if (!form.name || !form.price) return;
-    const payload = { ...form, price: parseFloat(form.price) };
-    if (editing) updateMutation.mutate({ id: editing.id, data: payload });
-    else createMutation.mutate(payload);
+    const payload = { ...form, price: parseFloat(form.price), purchased: form.purchased ?? false };
+    if (editing) updateWishlist(editing.id, payload);
+    else addWishlist(payload);
+    close();
   };
 
   const togglePurchased = (item) => {
-    updateMutation.mutate({ id: item.id, data: { ...item, purchased: !item.purchased } });
+    updateWishlist(item.id, { ...item, purchased: !item.purchased });
   };
 
   const now = new Date();
@@ -225,7 +205,7 @@ export default function Wishlist() {
         <motion.div variants={fadeUp} className="space-y-1">
           <AnimatePresence>
             {unpurchased.map((item) => (
-              <WishlistRow key={item.id} item={item} onToggle={togglePurchased} onEdit={openEdit} onDelete={() => deleteMutation.mutate(item.id)} />
+              <WishlistRow key={item.id} item={item} onToggle={togglePurchased} onEdit={openEdit} onDelete={() => deleteWishlist(item.id)} />
             ))}
           </AnimatePresence>
 
@@ -234,7 +214,7 @@ export default function Wishlist() {
               <p className="text-xs text-muted-foreground uppercase tracking-widest pt-4 pb-1">Purchased</p>
               <AnimatePresence>
                 {purchased.map((item) => (
-                  <WishlistRow key={item.id} item={item} onToggle={togglePurchased} onEdit={openEdit} onDelete={() => deleteMutation.mutate(item.id)} />
+                  <WishlistRow key={item.id} item={item} onToggle={togglePurchased} onEdit={openEdit} onDelete={() => deleteWishlist(item.id)} />
                 ))}
               </AnimatePresence>
             </>
@@ -347,7 +327,7 @@ export default function Wishlist() {
             {editing && (
               <button
                 className="flex-1 py-3.5 text-sm text-destructive font-medium hover:bg-destructive/5 transition-colors"
-                onClick={() => { deleteMutation.mutate(editing.id); close(); }}
+                onClick={() => { deleteWishlist(editing.id); close(); }}
               >
                 Delete
               </button>

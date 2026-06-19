@@ -1,61 +1,32 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
-
 import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Plus, MapPin, Calendar, Wallet, ChevronRight, Plane } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
+
+function parseLocalDate(dateStr) {
+  if (!dateStr) return new Date(NaN);
+  const parts = dateStr.split("-").map((p) => parseInt(p, 10));
+  if (parts.length !== 3) return new Date(dateStr);
+  const [y, m, d] = parts;
+  return new Date(y, m - 1, d);
+}
 import EmptyState from "@/components/shared/EmptyState";
 import TripDialog from "@/components/trips/TripDialog";
-import { formatCurrency, DEFAULT_CATEGORIES } from "@/lib/currencies";
+import { formatCurrency } from "@/lib/currencies";
 import { cn } from "@/lib/utils";
+import { useLocalData } from "@/context/LocalDataContext";
 
 export default function Trips() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTrip, setEditingTrip] = useState(null);
-  const queryClient = useQueryClient();
-
-  const { data: trips = [] } = useQuery({
-    queryKey: ["trips"],
-    queryFn: () => db.entities.Trip.list("-created_date"),
-  });
-
-  const createTrip = useMutation({
-    mutationFn: async (data) => {
-      const trip = await db.entities.Trip.create(data);
-      // Create default categories
-      await db.entities.BudgetCategory.bulkCreate(
-        DEFAULT_CATEGORIES.map((cat) => ({
-          trip_id: trip.id,
-          name: cat.name,
-          icon: cat.icon,
-          color: cat.color,
-          planned_budget: 0,
-          subcategories: cat.subcategories,
-        }))
-      );
-      return trip;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["trips", "categories"] }),
-  });
-
-  const updateTrip = useMutation({
-    mutationFn: ({ id, data }) => db.entities.Trip.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["trips"] }),
-  });
-
-  const deleteTrip = useMutation({
-    mutationFn: (id) => db.entities.Trip.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["trips"] }),
-  });
+  const { trips, addTrip, updateTrip, deleteTrip } = useLocalData();
 
   const handleSave = (data) => {
     if (editingTrip) {
-      updateTrip.mutate({ id: editingTrip.id, data });
+      updateTrip(editingTrip.id, data);
     } else {
-      createTrip.mutate(data);
+      addTrip(data);
     }
     setEditingTrip(null);
   };
@@ -89,7 +60,7 @@ export default function Trips() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {trips.map((trip, i) => {
-            const daysUntil = differenceInDays(new Date(trip.start_date), new Date());
+            const daysUntil = differenceInDays(parseLocalDate(trip.start_date), new Date());
             const isUpcoming = daysUntil > 0;
             return (
               <motion.div
@@ -119,7 +90,7 @@ export default function Trips() {
                       <Calendar className="w-3 h-3" /> Dates
                     </p>
                     <p className="text-sm font-medium mt-1">
-                      {format(new Date(trip.start_date), "MMM d")} – {format(new Date(trip.end_date), "MMM d")}
+                      {format(parseLocalDate(trip.start_date), "MMM d")} – {format(parseLocalDate(trip.end_date), "MMM d")}
                     </p>
                   </div>
                   <div className="bg-secondary/50 rounded-2xl p-3">
@@ -135,7 +106,7 @@ export default function Trips() {
                     <p className="text-xs text-muted-foreground">{daysUntil} days until departure</p>
                   ) : (
                     <p className="text-xs text-muted-foreground">
-                      {differenceInDays(new Date(trip.end_date), new Date(trip.start_date))} day trip
+                      {differenceInDays(parseLocalDate(trip.end_date), parseLocalDate(trip.start_date))} day trip
                     </p>
                   )}
                   <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
@@ -151,7 +122,7 @@ export default function Trips() {
         onOpenChange={setDialogOpen}
         trip={editingTrip}
         onSave={handleSave}
-        onDelete={(id) => deleteTrip.mutate(id)}
+        onDelete={deleteTrip}
       />
     </div>
   );

@@ -1,7 +1,5 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
-
 import React, { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useLocalData } from "@/context/LocalDataContext";
 
 import { format, differenceInDays } from "date-fns";
 import { CheckCircle2, Circle, ArrowRight, Plane } from "lucide-react";
@@ -9,6 +7,7 @@ import { Link } from "react-router-dom";
 import { formatCurrency } from "@/lib/currencies";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGreeting } from "@/hooks/useGreeting";
+import { useTimeFormat } from "@/lib/TimeFormatContext";
 
 const stagger = {
   animate: { transition: { staggerChildren: 0.06 } },
@@ -22,26 +21,34 @@ export default function Dashboard() {
   const { greeting } = useGreeting();
   const today = format(new Date(), "yyyy-MM-dd");
 
-  const { data: tasks = [] } = useQuery({
-    queryKey: ["tasks", today],
-    queryFn: () => db.entities.Task.filter({ date: today }),
-  });
+  const { tasks: allTasks = [], trips: allTrips = [], purchases: allPurchases = [] } = useLocalData();
 
-  const { data: trips = [] } = useQuery({
-    queryKey: ["trips"],
-    queryFn: () => db.entities.Trip.list("-created_date", 5),
-  });
+  const tasks = allTasks.filter((t) => t.date === today);
 
-  const { data: purchases = [] } = useQuery({
-    queryKey: ["purchases-recent"],
-    queryFn: () => db.entities.Purchase.list("-created_date", 10),
-  });
+  // sort trips by createdAt desc and limit to 5
+  const trips = [...allTrips].sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || "")).slice(0, 5);
+
+  const activeTrip = trips.find((t) => t.status === "active") || trips[0];
+  const purchases = activeTrip ? allPurchases.filter((p) => p.trip_id === activeTrip.id) : [];
+
+  const { format: timeFormat } = useTimeFormat();
 
   const completedTasks = tasks.filter((t) => t.completed).length;
   const totalTasks = tasks.length;
   const taskProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  const activeTrip = trips.find((t) => t.status === "active") || trips[0];
+  const formatTime = (value) => {
+    if (!value) return "";
+    const [h, m] = value.split(":").map(Number);
+    if (Number.isNaN(h) || Number.isNaN(m)) return value;
+    if (timeFormat === "military") {
+      return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+    }
+    const hour = h % 12 === 0 ? 12 : h % 12;
+    const suffix = h >= 12 ? "PM" : "AM";
+    return `${hour}:${m.toString().padStart(2, "0")} ${suffix}`;
+  };
+
   const tripPurchases = purchases.filter((p) => activeTrip && p.trip_id === activeTrip?.id);
   const totalSpent = tripPurchases.reduce((sum, p) => sum + (p.converted_amount || p.amount), 0);
   const remaining = (activeTrip?.total_budget || 0) - totalSpent;
@@ -136,7 +143,7 @@ export default function Dashboard() {
                   </p>
                 </div>
                 {task.start_time && (
-                  <span className="text-xs text-muted-foreground flex-shrink-0">{task.start_time}</span>
+                  <span className="text-xs text-muted-foreground flex-shrink-0">{formatTime(task.start_time)}</span>
                 )}
               </div>
             ))}

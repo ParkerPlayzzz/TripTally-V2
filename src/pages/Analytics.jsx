@@ -1,7 +1,5 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
-
 import React, { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useLocalData } from "@/context/LocalDataContext";
 
 import { motion } from "framer-motion";
 import { BarChart3, ShoppingCart } from "lucide-react";
@@ -79,36 +77,18 @@ function CategoryProgressRow({ cat, spent, homeCurrency }) {
 export default function Analytics() {
   const [selectedTripId, setSelectedTripId] = useState("");
 
-  const { data: trips = [] } = useQuery({
-    queryKey: ["trips"],
-    queryFn: () => db.entities.Trip.list("-created_date"),
-  });
-
-  // All purchases — for cross-trip overview
-  const { data: allPurchases = [] } = useQuery({
-    queryKey: ["purchases-all"],
-    queryFn: () => db.entities.Purchase.list("-created_date"),
-  });
+  const { trips = [], categories: allCategories = [], purchases: allPurchases = [] } = useLocalData();
 
   const activeTrip = selectedTripId
     ? trips.find((t) => t.id === selectedTripId)
     : trips.find((t) => t.status === "active") || trips[0];
 
+  const tripCategories = activeTrip ? allCategories.filter((cat) => cat.trip_id === activeTrip.id) : [];
+  const tripPurchases = activeTrip ? allPurchases.filter((p) => p.trip_id === activeTrip.id) : [];
+
   useEffect(() => {
     if (activeTrip && !selectedTripId) setSelectedTripId(activeTrip.id);
   }, [activeTrip]);
-
-  const { data: categories = [] } = useQuery({
-    queryKey: ["categories", activeTrip?.id],
-    queryFn: () => db.entities.BudgetCategory.filter({ trip_id: activeTrip.id }),
-    enabled: !!activeTrip,
-  });
-
-  const { data: purchases = [] } = useQuery({
-    queryKey: ["purchases", activeTrip?.id],
-    queryFn: () => db.entities.Purchase.filter({ trip_id: activeTrip.id }),
-    enabled: !!activeTrip,
-  });
 
   const homeCurrency = activeTrip?.home_currency || "CAD";
 
@@ -119,8 +99,8 @@ export default function Analytics() {
   }));
 
   // Category spending for selected trip
-  const categoryData = categories.map((cat, i) => {
-    const spent = purchases.filter((p) => p.category_id === cat.id).reduce((sum, p) => sum + (p.converted_amount || p.amount), 0);
+  const categoryData = tripCategories.map((cat) => {
+    const spent = tripPurchases.filter((p) => p.category_id === cat.id).reduce((sum, p) => sum + (p.converted_amount || p.amount), 0);
     return { cat, spent };
   }).filter((d) => d.spent > 0 || d.cat.planned_budget > 0);
 
@@ -133,17 +113,17 @@ export default function Analytics() {
 
   // Daily spending
   const dailyMap = {};
-  purchases.forEach((p) => {
+  tripPurchases.forEach((p) => {
     dailyMap[p.date] = (dailyMap[p.date] || 0) + (p.converted_amount || p.amount);
   });
   const dailyData = Object.entries(dailyMap)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, amount]) => ({ date: format(new Date(date + "T00:00:00"), "MMM d"), amount: parseFloat(amount.toFixed(2)) }));
 
-  const totalSpent = purchases.reduce((sum, p) => sum + (p.converted_amount || p.amount), 0);
+  const totalSpent = tripPurchases.reduce((sum, p) => sum + (p.converted_amount || p.amount), 0);
   const avgDaily = dailyData.length > 0 ? totalSpent / dailyData.length : 0;
-  const largestPurchase = purchases.length > 0
-    ? purchases.reduce((max, p) => (p.converted_amount || p.amount) > (max.converted_amount || max.amount) ? p : max, purchases[0])
+  const largestPurchase = tripPurchases.length > 0
+    ? tripPurchases.reduce((max, p) => (p.converted_amount || p.amount) > (max.converted_amount || max.amount) ? p : max, tripPurchases[0])
     : null;
 
   if (!activeTrip) {
@@ -196,7 +176,7 @@ export default function Analytics() {
       )}
 
       {/* Summary cards */}
-      {purchases.length > 0 && (
+      {tripPurchases.length > 0 && (
         <motion.div variants={fadeUp} className="grid grid-cols-3 divide-x divide-border border border-border rounded-2xl overflow-hidden bg-card">
           <div className="px-4 py-3.5">
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Total Spent</p>
@@ -215,7 +195,7 @@ export default function Analytics() {
         </motion.div>
       )}
 
-      {purchases.length === 0 ? (
+      {tripPurchases.length === 0 ? (
         <motion.div variants={fadeUp}>
           <EmptyState icon={ShoppingCart} title="No purchases yet" description="Add purchases to see spending analytics" />
         </motion.div>

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from "react";
 
-const TransparencyContext = createContext({ opacity: 0.85 });
+const TransparencyContext = createContext({ opacity: 0.85, setOpacity: () => {} });
 
 export function TransparencyProvider({ children }) {
   const [opacity, setOpacity] = useState(() => {

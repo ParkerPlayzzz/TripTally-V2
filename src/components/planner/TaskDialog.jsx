@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import logger from "@/lib/logger";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Plus, X } from "lucide-react";
 import { useTransparency } from "@/lib/TransparencyContext";
@@ -33,6 +34,8 @@ export default function TaskDialog({ open, onOpenChange, task, onSave, onDelete,
     }
   );
 
+  const dateRef = useRef(null);
+
   // Sync form when task prop changes
   React.useEffect(() => {
     setForm(task || {
@@ -50,6 +53,7 @@ export default function TaskDialog({ open, onOpenChange, task, onSave, onDelete,
 
   const handleSave = () => {
     if (!form.title.trim()) return;
+    logger.debug("TaskDialog.handleSave", form);
     onSave(form);
     onOpenChange(false);
   };
@@ -90,12 +94,24 @@ export default function TaskDialog({ open, onOpenChange, task, onSave, onDelete,
 
           <label className="flex items-center px-5 py-3.5 gap-4">
             <span className="text-xs text-muted-foreground w-20 flex-shrink-0">Date</span>
-            <input
-              type="date"
-              className="flex-1 bg-transparent text-sm text-foreground outline-none text-right appearance-none cursor-pointer"
-              value={form.date}
-              onChange={(e) => setForm({ ...form, date: e.target.value })}
-            />
+            <div
+              className="flex-1"
+              onClick={() => {
+                const el = dateRef.current;
+                if (!el) return;
+                if (typeof el.showPicker === "function") return el.showPicker();
+                el.focus();
+              }}
+            >
+              <input
+                ref={dateRef}
+                type="date"
+                className="w-full bg-transparent text-sm text-foreground outline-none text-right cursor-pointer"
+                value={form.date}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
           </label>
 
           <div className="flex items-center px-5 py-3.5 gap-4">
@@ -103,14 +119,14 @@ export default function TaskDialog({ open, onOpenChange, task, onSave, onDelete,
             <div className="flex-1 flex items-center justify-end gap-2">
               <input
                 type="time"
-                className="bg-transparent text-sm text-foreground outline-none text-right appearance-none cursor-pointer"
+                className="bg-transparent text-sm text-foreground outline-none text-right cursor-pointer"
                 value={form.start_time}
                 onChange={(e) => setForm({ ...form, start_time: e.target.value })}
               />
               <span className="text-muted-foreground/40 text-xs">–</span>
               <input
                 type="time"
-                className="bg-transparent text-sm text-foreground outline-none text-right appearance-none cursor-pointer"
+                className="bg-transparent text-sm text-foreground outline-none text-right cursor-pointer"
                 value={form.end_time}
                 onChange={(e) => setForm({ ...form, end_time: e.target.value })}
               />

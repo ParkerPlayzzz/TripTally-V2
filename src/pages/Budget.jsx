@@ -1,7 +1,5 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
-
 import React, { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocalData } from "@/context/LocalDataContext";
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -27,12 +25,9 @@ export default function Budget() {
   const [filterCity, setFilterCity] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterPeriod, setFilterPeriod] = useState("");
-  const queryClient = useQueryClient();
+  const { trips: allTrips = [], categories: allCategories = [], purchases: allPurchases = [], addCategory, updateCategory, deleteCategory, addPurchase, updatePurchase, deletePurchase } = useLocalData();
 
-  const { data: trips = [] } = useQuery({
-    queryKey: ["trips"],
-    queryFn: () => db.entities.Trip.list("-created_date"),
-  });
+  const trips = allTrips;
 
   const activeTrip = selectedTripId
     ? trips.find((t) => t.id === selectedTripId)
@@ -42,62 +37,24 @@ export default function Budget() {
     if (activeTrip && !selectedTripId) setSelectedTripId(activeTrip.id);
   }, [activeTrip]);
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ["categories", activeTrip?.id],
-    queryFn: () => db.entities.BudgetCategory.filter({ trip_id: activeTrip.id }),
-    enabled: !!activeTrip,
-  });
+  const categories = activeTrip ? allCategories.filter((c) => c.trip_id === activeTrip.id) : [];
 
-  const { data: purchases = [] } = useQuery({
-    queryKey: ["purchases", activeTrip?.id],
-    queryFn: () => db.entities.Purchase.filter({ trip_id: activeTrip.id }),
-    enabled: !!activeTrip,
-  });
-
-  const createPurchase = useMutation({
-    mutationFn: (data) => db.entities.Purchase.create(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["purchases"] }),
-  });
-
-  const updatePurchase = useMutation({
-    mutationFn: ({ id, data }) => db.entities.Purchase.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["purchases"] }),
-  });
-
-  const deletePurchase = useMutation({
-    mutationFn: (id) => db.entities.Purchase.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["purchases"] }),
-  });
-
-  const createCategory = useMutation({
-    mutationFn: (data) => db.entities.BudgetCategory.create(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories"] }),
-  });
-
-  const updateCategory = useMutation({
-    mutationFn: ({ id, data }) => db.entities.BudgetCategory.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories"] }),
-  });
-
-  const deleteCategory = useMutation({
-    mutationFn: (id) => db.entities.BudgetCategory.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories"] }),
-  });
+  const purchases = activeTrip ? allPurchases.filter((p) => p.trip_id === activeTrip.id) : [];
 
   const handleSaveCategory = (data) => {
     if (editingCategory) {
-      updateCategory.mutate({ id: editingCategory.id, data });
+      updateCategory(editingCategory.id, data);
     } else {
-      createCategory.mutate(data);
+      addCategory(data);
     }
     setEditingCategory(null);
   };
 
   const handleSavePurchase = (data) => {
     if (editingPurchase) {
-      updatePurchase.mutate({ id: editingPurchase.id, data });
+      updatePurchase(editingPurchase.id, data);
     } else {
-      createPurchase.mutate(data);
+      addPurchase(data);
     }
     setEditingPurchase(null);
   };
@@ -365,7 +322,7 @@ export default function Budget() {
         tripId={activeTrip?.id}
         tripCurrency={homeCurrency}
         onSave={handleSaveCategory}
-        onDelete={(id) => deleteCategory.mutate(id)}
+        onDelete={(id) => deleteCategory(id)}
       />
 
       <PurchaseDialog
@@ -375,7 +332,7 @@ export default function Budget() {
         categories={categories}
         trip={activeTrip}
         onSave={handleSavePurchase}
-        onDelete={(id) => deletePurchase.mutate(id)}
+        onDelete={(id) => deletePurchase(id)}
       />
     </div>
   );

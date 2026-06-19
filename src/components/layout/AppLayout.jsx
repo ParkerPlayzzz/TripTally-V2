@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AppLogo from "@/components/layout/AppLogo";
+import { Toaster } from "@/components/ui/toaster";
+import FirstRunDialog from "@/components/FirstRunDialog";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -134,6 +136,8 @@ export default function AppLayout() {
         <div className="flex-1 overflow-y-auto">
           <Outlet />
         </div>
+        <Toaster />
+        <FirstRunDialog />
       </main>
     </div>
   );

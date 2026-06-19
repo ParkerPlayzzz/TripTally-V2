@@ -2,6 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { CheckCircle2, Circle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTimeFormat } from "@/lib/TimeFormatContext";
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // 6 AM to 11 PM
 
@@ -18,8 +19,22 @@ function getTaskPosition(task) {
 }
 
 export default function TimelineView({ tasks, onToggle, onTaskClick }) {
+  const { format: timeFormat } = useTimeFormat();
+
   const scheduledTasks = tasks.filter((t) => t.start_time);
   const unscheduledTasks = tasks.filter((t) => !t.start_time);
+
+  const formatTime = (value) => {
+    if (!value) return "";
+    const [h, m] = value.split(":").map(Number);
+    if (Number.isNaN(h) || Number.isNaN(m)) return value;
+    if (timeFormat === "military") {
+      return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+    }
+    const hour = h % 12 === 0 ? 12 : h % 12;
+    const suffix = h >= 12 ? "PM" : "AM";
+    return `${hour}:${m.toString().padStart(2, "0")} ${suffix}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -116,7 +131,7 @@ export default function TimelineView({ tasks, onToggle, onTaskClick }) {
                     </p>
                     <p className="text-xs text-white/70 flex items-center gap-1 mt-0.5">
                       <Clock className="w-3 h-3" />
-                      {task.start_time} – {task.end_time || "..."}
+                      {formatTime(task.start_time)} – {task.end_time ? formatTime(task.end_time) : "..."}
                     </p>
                   </div>
                 </div>

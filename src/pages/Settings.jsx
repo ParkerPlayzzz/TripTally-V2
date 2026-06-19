@@ -1,8 +1,6 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Moon, Sun, Monitor, LogOut, User, Bell, Layers, Type, RefreshCw, DollarSign } from "lucide-react";
+import { Moon, Sun, Monitor, LogOut, User, Bell, Layers, Type, Clock, RefreshCw, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 
@@ -10,7 +8,10 @@ import CurrencyConverter from "@/components/budget/CurrencyConverter";
 import { useTransparency } from "@/lib/TransparencyContext";
 import { glassStyle } from "@/lib/glassStyle";
 import { useFontSize } from "@/lib/FontSizeContext";
-import { CURRENCIES, getBaseRates } from "@/lib/currencies";
+import { useTimeFormat } from "@/lib/TimeFormatContext";
+import logger from "@/lib/logger";
+import { CURRENCIES, getBaseRates, getExchangeApiKey, setExchangeApiKey, fetchAndSaveRates, getRatesLastUpdated } from "@/lib/currencies";
+import { toast } from "@/components/ui/use-toast";
 
 export default function Settings() {
   const [theme, setTheme] = useState(() => {
@@ -22,9 +23,15 @@ export default function Settings() {
   const [notifications, setNotifications] = useState(true);
   const { opacity, setOpacity } = useTransparency();
   const { size: fontSize, setSize: setFontSize, defaultSize } = useFontSize();
+  const { format: timeFormat, setFormat: setTimeFormat } = useTimeFormat();
 
   // Exchange rate state — stored as "how many units of foreign currency per 1 USD"
   const baseRates = getBaseRates();
+  const [apiKey, setApiKey] = useState(() => getExchangeApiKey() || "");
+  const [lastUpdated, setLastUpdated] = useState(() => {
+    const ts = getRatesLastUpdated();
+    return ts ? new Date(ts) : null;
+  });
   const [customRates, setCustomRates] = useState(() => {
     try {
       const saved = localStorage.getItem("custom-exchange-rates");
@@ -49,6 +56,23 @@ export default function Settings() {
     delete updated[code];
     setCustomRates(updated);
     localStorage.setItem("custom-exchange-rates", JSON.stringify(updated));
+  };
+
+  const handleApiKeyChange = (val) => {
+    setApiKey(val);
+    setExchangeApiKey(val);
+  };
+
+  const handleFetchRates = async () => {
+    try {
+      await fetchAndSaveRates();
+      const ts = getRatesLastUpdated();
+      setLastUpdated(ts ? new Date(ts) : new Date());
+      toast({ title: "Exchange rates updated", description: "Latest exchange rates have been fetched." });
+    } catch (err) {
+      logger.error(err);
+      toast({ title: "Failed to fetch rates", description: err.message || String(err) });
+    }
   };
 
   const applyTheme = (newTheme) => {
@@ -137,7 +161,7 @@ export default function Settings() {
           {/* Live preview — image behind, glass card on top */}
           <div className="relative rounded-2xl overflow-hidden mb-5" style={{ height: 220 }}>
             <img
-              src="https://media.db.com/images/public/6a29bf0d4d931c5df388f555/1e7a48249_IMG_1079.jpg"
+              src="https://rtlimages.apple.com/cmc/dieter/store/16_9/R824.png?resize=1068:598&output-format=jpg&output-quality=85&interpolation=progressive-bicubic"
               alt="preview backdrop"
               className="absolute inset-0 w-full h-full object-cover"
             />
@@ -146,7 +170,7 @@ export default function Settings() {
 
             {/* The glass card — mirrors exactly what dialogs look like */}
             <div
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-56 rounded-2xl border border-white/20 transition-all duration-200 px-5 py-4"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-56 rounded-2xl border border-white/20 px-5 py-4"
               style={glassStyle(opacity)}
             >
               <p className="text-xs font-semibold text-black/80 mb-0.5">Dialog Preview</p>
@@ -219,12 +243,58 @@ export default function Settings() {
         </div>
       </motion.div>
 
+      {/* Time Format */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.21 }} className="bg-card border border-border rounded-3xl p-6 shadow-sm">
+        <h2 className="font-semibold font-heading mb-1 flex items-center gap-2">
+          <Clock className="w-4 h-4 text-primary" /> Time Format
+        </h2>
+        <p className="text-xs text-muted-foreground mb-4">Choose how task times display across the app</p>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { value: "standard", label: "Standard", detail: "1:00 PM" },
+            { value: "military", label: "Military", detail: "13:00" },
+          ].map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setTimeFormat(opt.value)}
+              className={`rounded-2xl border-2 p-4 text-left transition-all ${
+                timeFormat === opt.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
+              }`}
+            >
+              <p className="text-sm font-medium mb-1">{opt.label}</p>
+              <p className="text-xs text-muted-foreground">{opt.detail}</p>
+            </button>
+          ))}
+        </div>
+      </motion.div>
+
       {/* Exchange Rates */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }} className="bg-card border border-border rounded-3xl p-6 shadow-sm">
         <h2 className="font-semibold font-heading mb-1 flex items-center gap-2">
           <DollarSign className="w-4 h-4 text-primary" /> Exchange Rates
         </h2>
         <p className="text-xs text-muted-foreground mb-4">Override rates — enter how many units of each currency equal 1 USD</p>
+          <div className="mb-3">
+            <label className="text-xs text-muted-foreground">Exchange API Key</label>
+            <div className="flex items-center gap-2 mt-2">
+              <input
+                type="text"
+                className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/40 rounded-xl border border-border px-3 py-2"
+                placeholder="Enter API key (optional)"
+                value={apiKey}
+                onChange={(e) => handleApiKeyChange(e.target.value)}
+              />
+              <button onClick={handleFetchRates} className="rounded-xl px-3 py-2 bg-primary/5 hover:bg-primary/10 transition-colors">
+                Fetch latest rates
+              </button>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2">Saved to local storage; offline fallback uses cached or default rates.</p>
+            {lastUpdated ? (
+              <p className="text-[10px] text-muted-foreground mt-1">Last updated: {lastUpdated.toLocaleString()}</p>
+            ) : (
+              <p className="text-[10px] text-muted-foreground mt-1">No fetched rates cached yet.</p>
+            )}
+          </div>
         <div className="divide-y divide-border border border-border rounded-2xl overflow-hidden">
           {CURRENCIES.filter(c => c.code !== "USD").map((c) => {
             const defaultRate = baseRates[c.code];

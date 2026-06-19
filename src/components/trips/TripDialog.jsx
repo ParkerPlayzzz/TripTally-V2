@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, X } from "lucide-react";
@@ -12,6 +12,8 @@ export default function TripDialog({ open, onOpenChange, trip, onSave, onDelete 
     trip || { name: "", destinations: [], start_date: "", end_date: "", total_budget: "", home_currency: "CAD", status: "planning", notes: "" }
   );
   const [destInput, setDestInput] = useState("");
+  const startRef = useRef(null);
+  const endRef = useRef(null);
 
   React.useEffect(() => {
     if (open) {
@@ -110,20 +112,38 @@ export default function TripDialog({ open, onOpenChange, trip, onSave, onDelete 
           {/* Dates */}
           <div className="flex items-center px-5 py-3.5 gap-4">
             <span className="text-xs text-muted-foreground w-24 flex-shrink-0">Dates</span>
-            <div className="flex-1 flex items-center justify-end gap-2">
-              <input
-                type="date"
-                className="bg-transparent text-sm text-foreground outline-none text-right appearance-none cursor-pointer"
-                value={form.start_date}
-                onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-              />
+            <div className="flex-1 flex items-center justify-center gap-2">
+              <div className="w-full max-w-[170px]" onClick={() => {
+                const el = startRef.current;
+                if (!el) return;
+                if (typeof el.showPicker === "function") return el.showPicker();
+                el.focus();
+              }}>
+                <input
+                  ref={startRef}
+                  type="date"
+                  className="w-full bg-transparent text-sm text-foreground outline-none text-left cursor-pointer min-w-0"
+                  value={form.start_date}
+                  onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
               <span className="text-muted-foreground/40 text-xs">–</span>
-              <input
-                type="date"
-                className="bg-transparent text-sm text-foreground outline-none text-right appearance-none cursor-pointer"
-                value={form.end_date}
-                onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-              />
+              <div className="w-full max-w-[170px]" onClick={() => {
+                const el = endRef.current;
+                if (!el) return;
+                if (typeof el.showPicker === "function") return el.showPicker();
+                el.focus();
+              }}>
+                <input
+                  ref={endRef}
+                  type="date"
+                  className="w-full bg-transparent text-sm text-foreground outline-none text-left cursor-pointer min-w-0"
+                  value={form.end_date}
+                  onChange={(e) => setForm({ ...form, end_date: e.target.value })}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
             </div>
           </div>
 

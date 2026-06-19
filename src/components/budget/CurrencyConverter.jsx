@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { CURRENCIES, convertCurrency, getExchangeRate } from "@/lib/currencies";
+import logger from "@/lib/logger";
+import { CURRENCIES, convertCurrency, getExchangeRate, ensureRatesFresh } from "@/lib/currencies";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeftRight } from "lucide-react";
@@ -9,15 +10,31 @@ export default function CurrencyConverter() {
   const [amount, setAmount] = useState("100");
   const [from, setFrom] = useState("CAD");
   const [to, setTo] = useState("JPY");
+  const [ratesVersion, setRatesVersion] = useState(0);
 
   const converted = convertCurrency(parseFloat(amount) || 0, from, to);
   const rate = getExchangeRate(from, to);
   const toCurrency = CURRENCIES.find((c) => c.code === to);
+  logger.debug('[triptally] CurrencyConverter render', { amount, from, to, converted, rate });
+
+  React.useEffect(() => {
+    const onRates = (e) => {
+      logger.debug('[triptally] CurrencyConverter received rates-updated event', e && e.detail);
+      setRatesVersion((v) => v + 1);
+    };
+    window.addEventListener('triptally:rates-updated', onRates);
+    return () => window.removeEventListener('triptally:rates-updated', onRates);
+  }, []);
 
   const swap = () => {
     setFrom(to);
     setTo(from);
   };
+
+  React.useEffect(() => {
+    // Try to refresh rates in the background if older than 24h
+    ensureRatesFresh().catch(() => {});
+  }, []);
 
   return (
     <motion.div

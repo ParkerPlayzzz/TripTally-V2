@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,28 +8,34 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CURRENCIES, convertCurrency, getExchangeRate } from "@/lib/currencies";
 import { Trash2, CreditCard, Banknote } from "lucide-react";
 
+const EMPTY_PURCHASE = (tripId, currency) => ({
+  trip_id: tripId || "",
+  item_name: "",
+  store_name: "",
+  date: new Date().toISOString().split("T")[0],
+  amount: "",
+  original_currency: currency,
+  converted_amount: "",
+  home_currency: currency,
+  exchange_rate: 1,
+  quantity: 1,
+  subcategory: "",
+  category_id: "",
+  city: "",
+  notes: "",
+  payment_method: "card",
+});
+
 export default function PurchaseDialog({ open, onOpenChange, purchase, categories = [], trip, onSave, onDelete }) {
   const homeCurrency = trip?.home_currency || "CAD";
-  
-  const [form, setForm] = useState(
-    purchase || {
-      trip_id: trip?.id || "",
-      item_name: "",
-      store_name: "",
-      date: new Date().toISOString().split("T")[0],
-      amount: "",
-      original_currency: homeCurrency,
-      converted_amount: "",
-      home_currency: homeCurrency,
-      exchange_rate: 1,
-      quantity: 1,
-      subcategory: "",
-      category_id: "",
-      city: "",
-      notes: "",
-      payment_method: "card",
+
+  const [form, setForm] = useState(purchase || EMPTY_PURCHASE(trip?.id, homeCurrency));
+
+  useEffect(() => {
+    if (open) {
+      setForm(purchase || EMPTY_PURCHASE(trip?.id, homeCurrency));
     }
-  );
+  }, [open, purchase, trip?.id, homeCurrency]);
 
   const handleAmountChange = (amount) => {
     const numAmount = parseFloat(amount) || 0;

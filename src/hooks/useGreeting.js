@@ -1,6 +1,5 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
-
 import { useState, useEffect } from "react";
+import db from "@/lib/db-fallback";
 
 function getTimeOfDay() {
   const h = new Date().getHours();
@@ -11,7 +10,14 @@ function getTimeOfDay() {
 
 export function useGreeting() {
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay);
-  const [userName, setUserName] = useState(null);
+  const stored = (() => {
+    try {
+      const raw = localStorage.getItem('triptally:user');
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  })();
+
+  const [userName, setUserName] = useState(stored ?? null);
 
   // Update greeting every minute
   useEffect(() => {
@@ -21,9 +27,21 @@ export function useGreeting() {
 
   // Load user name
   useEffect(() => {
+    // Fallback to remote auth if available
     db.auth.me().then((user) => {
       if (user?.full_name) setUserName(user.full_name.split(" ")[0]);
     }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    // also watch localStorage changes from other tabs
+    const onStorage = (e) => {
+      if (e.key === 'triptally:user') {
+        try { setUserName(e.newValue ? JSON.parse(e.newValue) : null); } catch {};
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, []);
 
   const displayName = userName || "Traveler";
