@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 import AppLayout from "@/components/layout/AppLayout";
 import Dashboard from "@/pages/Dashboard";
@@ -26,6 +27,7 @@ function App() {
 
         <Route path="*" element={<PageNotFound />} />
       </Routes>
+      <SpeedInsights />
     </BrowserRouter>
   );
 }
