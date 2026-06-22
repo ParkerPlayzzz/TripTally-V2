@@ -128,24 +128,26 @@ export default function Settings() {
       </motion.div>
 
       {/* Notifications */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-card border border-border rounded-3xl p-6 shadow-sm">
-        <h2 className="font-semibold font-heading mb-4 flex items-center gap-2">
-          <Bell className="w-4 h-4 text-primary" /> Notifications
-        </h2>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">Budget Warnings</p>
-              <p className="text-xs text-muted-foreground">Alert when nearing budget limits</p>
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-card border border-border rounded-3xl overflow-hidden shadow-sm">
+        <div className="p-6 pb-5">
+          <h2 className="font-semibold font-heading mb-4 flex items-center gap-2">
+            <Bell className="w-4 h-4 text-primary" /> Notifications
+          </h2>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Budget Warnings</p>
+                <p className="text-xs text-muted-foreground">Alert when nearing budget limits</p>
+              </div>
+              <Switch checked={notifications} onCheckedChange={setNotifications} />
             </div>
-            <Switch checked={notifications} onCheckedChange={setNotifications} />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">Daily Reminders</p>
-              <p className="text-xs text-muted-foreground">Remind to log purchases</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Daily Reminders</p>
+                <p className="text-xs text-muted-foreground">Remind to log purchases</p>
+              </div>
+              <Switch />
             </div>
-            <Switch />
           </div>
         </div>
       </motion.div>

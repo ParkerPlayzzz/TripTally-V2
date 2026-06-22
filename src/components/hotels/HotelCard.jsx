@@ -28,12 +28,27 @@ export default function HotelCard({ hotel, onEdit, onDelete }) {
           </div>
           <div>
             <h3 className="font-semibold text-gray-900 text-sm">{hotel.name}</h3>
-            <div className="flex items-center gap-1 mt-0.5">
+            {hotel.platform && (
+              <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600 mt-1">
+                {hotel.platform}
+              </span>
+            )}
+            <div className="flex items-center gap-1 mt-2">
               <MapPin size={12} className="text-gray-400" />
               <span className="text-xs text-gray-400">{hotel.city}, {hotel.country}</span>
             </div>
+            {hotel.address && (
+              <div className="text-xs text-gray-500 mt-1">
+                {hotel.address}
+              </div>
+            )}
+            {hotel.reservation_number && (
+              <div className="text-xs text-gray-500 mt-1">
+                <span className="font-semibold text-slate-700">Reservation:</span> {hotel.reservation_number}
+              </div>
+            )}
           </div>
-        </div>
+          </div>
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <button onClick={() => onEdit(hotel)} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
             <Pencil size={14} className="text-gray-400" />

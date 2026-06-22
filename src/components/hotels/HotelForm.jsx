@@ -4,6 +4,13 @@ import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CURRENCIES } from "@/lib/currencies";
 import { X, Hotel, Upload } from "lucide-react";
 
@@ -15,8 +22,11 @@ export default function HotelForm({ onSubmit, onCancel, initial }) {
     guests: initial?.guests || 1,
     country: initial?.country || "",
     city: initial?.city || "",
+    platform: initial?.platform || "",
+    reservation_number: initial?.reservation_number || "",
     price: initial?.price || "",
     currency: initial?.currency || "CAD",
+    address: initial?.address || "",
     logo_url: initial?.logo_url || "",
   });
   const [submitting, setSubmitting] = useState(false);
@@ -68,7 +78,10 @@ export default function HotelForm({ onSubmit, onCancel, initial }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    await onSubmit({ ...form, guests: Number(form.guests), price: Number(form.price) });
+    const hotelData = { ...form, guests: Number(form.guests), price: Number(form.price) };
+    if (!hotelData.platform) delete hotelData.platform;
+    if (!hotelData.reservation_number) delete hotelData.reservation_number;
+    await onSubmit(hotelData);
     setSubmitting(false);
   };
 
@@ -135,7 +148,7 @@ export default function HotelForm({ onSubmit, onCancel, initial }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label className="text-xs font-medium text-gray-500 mb-1.5 block">Check-in</Label>
               <Input
@@ -170,7 +183,7 @@ export default function HotelForm({ onSubmit, onCancel, initial }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label className="text-xs font-medium text-gray-500 mb-1.5 block">Country</Label>
               <Input
@@ -193,7 +206,45 @@ export default function HotelForm({ onSubmit, onCancel, initial }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label className="text-xs font-medium text-gray-500 mb-1.5 block">Reservation Number</Label>
+            <Input
+              value={form.reservation_number}
+              onChange={(e) => set("reservation_number", e.target.value)}
+              placeholder="e.g. ABC12345"
+              className="rounded-xl border-gray-200 focus:border-gray-400 focus:ring-gray-400"
+            />
+          </div>
+
+          <div>
+            <Label className="text-xs font-medium text-gray-500 mb-1.5 block">Booking Platform</Label>
+            <Select value={form.platform} onValueChange={(value) => set("platform", value)}>
+              <SelectTrigger className="rounded-xl border-gray-200 focus:border-gray-400 focus:ring-gray-400">
+                <SelectValue placeholder="Select platform" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Agoda">Agoda</SelectItem>
+                <SelectItem value="Expedia">Expedia</SelectItem>
+                <SelectItem value="Booking.Com">Booking.Com</SelectItem>
+                <SelectItem value="Hotels.com">Hotels.com</SelectItem>
+                <SelectItem value="VRBO">VRBO</SelectItem>
+                <SelectItem value="Airbnb">Airbnb</SelectItem>
+                <SelectItem value="Trips.com">Trips.com</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label className="text-xs font-medium text-gray-500 mb-1.5 block">Address</Label>
+            <Input
+              value={form.address}
+              onChange={(e) => set("address", e.target.value)}
+              placeholder="e.g. 123 Main St"
+              className="rounded-xl border-gray-200 focus:border-gray-400 focus:ring-gray-400"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label className="text-xs font-medium text-gray-500 mb-1.5 block">Total Price</Label>
               <Input

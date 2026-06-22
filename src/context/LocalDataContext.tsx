@@ -78,6 +78,9 @@ export type Hotel = {
   city: string;
   price: number;
   currency: string;
+  platform?: string;
+  reservation_number?: string;
+  address?: string;
   logo_url?: string;
   createdAt: string;
 };
