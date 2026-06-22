@@ -21,7 +21,6 @@ function App() {
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/trips" element={<Trips />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/wishlist" element={<Wishlist />} />
         </Route>
 
         <Route path="*" element={<PageNotFound />} />

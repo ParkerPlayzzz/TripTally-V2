@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "ignoreDeprecations": "6.0",
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@/hotels": ["src/pages/hotels/Hotels.jsx"],
+      "@/currency-exchange": ["src/pages/CurrencyExchange.jsx"]
     }
   },
   "include": ["src"],
