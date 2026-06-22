@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
     "paths": {
-      "@/*": ["src/*"],
-      "@/hotels": ["src/pages/hotels/Hotels.jsx"],
-      "@/currency-exchange": ["src/pages/CurrencyExchange.jsx"]
+      "@/*": ["./src/*"],
+      "@/hotels": ["./src/pages/hotels/Hotels.jsx"],
+      "@/currency-exchange": ["./src/pages/CurrencyExchange.jsx"]
     }
   },
   "include": ["src"],

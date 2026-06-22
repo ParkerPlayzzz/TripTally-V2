@@ -11,6 +11,8 @@ import {
   Heart,
   Menu,
   X,
+  Hotel,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AppLogo from "@/components/layout/AppLogo";
@@ -23,6 +25,8 @@ const navItems = [
   { icon: Wallet, label: "Budget", path: "/budget" },
   { icon: BarChart3, label: "Analytics", path: "/analytics" },
   { icon: Plane, label: "Trips", path: "/trips" },
+  { icon: Hotel, label: "Hotels", path: "/hotels" },
+  { icon: DollarSign, label: "Currency Exchange", path: "/currency-exchange" },
   { icon: Heart, label: "Wishlist", path: "/wishlist" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
@@ -98,13 +102,17 @@ export default function AppLayout() {
               <div className="flex items-center justify-between px-3 mb-8">
                 <div className="flex items-center gap-2.5">
                   <AppLogo size={28} />
-                  <span className="text-sm font-semibold">TripTally</span>
+                  <span className="text-sm font-semibold tracking-tight">TripTally</span>
                 </div>
-                <button onClick={() => setMobileOpen(false)} className="p-1 rounded-lg hover:bg-secondary text-muted-foreground">
-                  <X className="w-4 h-4" />
+                <button
+                  onClick={() => setMobileOpen(false)}
+                  className="p-1 hover:bg-secondary rounded-lg transition-colors"
+                >
+                  <X size={20} className="text-muted-foreground" />
                 </button>
               </div>
-              <nav className="space-y-0.5">
+
+              <nav className="flex-1 space-y-0.5">
                 {navItems.map((item) => (
                   <NavItem
                     key={item.path}
@@ -114,31 +122,35 @@ export default function AppLayout() {
                   />
                 ))}
               </nav>
+
+              <div className="px-3">
+                <p className="text-[11px] text-muted-foreground/60 tracking-wide">v1.0</p>
+              </div>
             </motion.aside>
           </>
         )}
       </AnimatePresence>
 
-      {/* Main */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile Header */}
-        <header className="lg:hidden flex items-center justify-between px-4 h-12 border-b border-border bg-background/90 backdrop-blur-xl">
-          <button onClick={() => setMobileOpen(true)} className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground">
-            <Menu className="w-4.5 h-4.5" />
+        <header className="lg:hidden h-16 flex items-center px-4 border-b border-border bg-background">
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="p-2 -ml-2 hover:bg-secondary rounded-lg transition-colors"
+          >
+            <Menu size={20} className="text-muted-foreground" />
           </button>
-          <div className="flex items-center gap-2">
-            <AppLogo size={24} />
-            <span className="text-sm font-semibold">TripTally</span>
-          </div>
-          <div className="w-8" />
         </header>
 
-        <div className="flex-1 overflow-y-auto">
+        {/* Content Area */}
+        <main className="flex-1 overflow-y-auto">
           <Outlet />
-        </div>
-        <Toaster />
-        <FirstRunDialog />
-      </main>
+        </main>
+      </div>
+
+      <FirstRunDialog />
+      <Toaster />
     </div>
   );
 }

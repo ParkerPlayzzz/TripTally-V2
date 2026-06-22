@@ -68,12 +68,27 @@ export type Purchase = {
   createdAt: string;
 };
 
+export type Hotel = {
+  id: string;
+  name: string;
+  check_in: string;
+  check_out: string;
+  guests: number;
+  country: string;
+  city: string;
+  price: number;
+  currency: string;
+  logo_url?: string;
+  createdAt: string;
+};
+
 type LocalDataContextType = {
   trips: Trip[];
   tasks: Task[];
   categories: Category[];
   purchases: Purchase[];
   wishlist: WishlistItem[];
+  hotels: Hotel[];
   transparency: number;
   addTrip: (trip: Omit<Trip, "id" | "createdAt">) => void;
   updateTrip: (id: string, changes: Partial<Trip>) => void;
@@ -91,6 +106,9 @@ type LocalDataContextType = {
   addWishlist: (item: Omit<WishlistItem, "id" | "createdAt">) => void;
   updateWishlist: (id: string, changes: Partial<WishlistItem>) => void;
   deleteWishlist: (id: string) => void;
+  addHotel: (hotel: Omit<Hotel, "id" | "createdAt">) => void;
+  updateHotel: (id: string, changes: Partial<Hotel>) => void;
+  deleteHotel: (id: string) => void;
   setTransparency: (value: number) => void;
   userName?: string | null;
   setUserName: (name: string | null) => void;
@@ -102,6 +120,7 @@ const KEY_WISHLIST = "triptally:wishlist";
 const KEY_TRANSPARENCY = "triptally:transparency";
 const KEY_CATEGORIES = "triptally:categories";
 const KEY_PURCHASES = "triptally:purchases";
+const KEY_HOTELS = "triptally:hotels";
 const KEY_USER = "triptally:user";
 
 const loadJSON = <T,>(key: string, fallback: T): T => {
@@ -131,6 +150,7 @@ export const LocalDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [transparency, setTransparencyState] = useState<number>(() => loadJSON(KEY_TRANSPARENCY, 0.5));
   const [categories, setCategories] = useState<Category[]>(() => loadJSON(KEY_CATEGORIES, []));
   const [purchases, setPurchases] = useState<Purchase[]>(() => loadJSON(KEY_PURCHASES, []));
+  const [hotels, setHotels] = useState<Hotel[]>(() => loadJSON(KEY_HOTELS, []));
   const [userName, setUserNameState] = useState<string | null>(() => loadJSON(KEY_USER, null));
 
   useEffect(() => saveJSON(KEY_TRIPS, trips), [trips]);
@@ -139,6 +159,7 @@ export const LocalDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => saveJSON(KEY_TRANSPARENCY, transparency), [transparency]);
   useEffect(() => saveJSON(KEY_CATEGORIES, categories), [categories]);
   useEffect(() => saveJSON(KEY_PURCHASES, purchases), [purchases]);
+  useEffect(() => saveJSON(KEY_HOTELS, hotels), [hotels]);
   useEffect(() => saveJSON(KEY_USER, userName), [userName]);
 
   const addTrip = (trip: Omit<Trip, "id" | "createdAt">) => {
@@ -182,6 +203,18 @@ export const LocalDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const deletePurchase = (id: string) => {
     setPurchases((current) => current.filter((p) => p.id !== id));
+  };
+
+  const addHotel = (hotel: Omit<Hotel, "id" | "createdAt">) => {
+    setHotels((current) => [ { ...hotel, id: makeId("hotel"), createdAt: new Date().toISOString() }, ...current ]);
+  };
+
+  const updateHotel = (id: string, changes: Partial<Hotel>) => {
+    setHotels((current) => current.map((h) => (h.id === id ? { ...h, ...changes } : h)));
+  };
+
+  const deleteHotel = (id: string) => {
+    setHotels((current) => current.filter((h) => h.id !== id));
   };
 
   const addTask = (task: Omit<Task, "id" | "createdAt">) => {
@@ -258,6 +291,7 @@ export const LocalDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       categories,
       purchases,
       wishlist,
+      hotels,
       transparency,
       addTrip,
       updateTrip,
@@ -275,11 +309,14 @@ export const LocalDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       addWishlist,
       updateWishlist,
       deleteWishlist,
+      addHotel,
+      updateHotel,
+      deleteHotel,
       setTransparency,
       userName,
       setUserName,
     }),
-    [trips, tasks, categories, purchases, wishlist, transparency, userName],
+    [trips, tasks, categories, purchases, hotels, wishlist, transparency, userName],
   );
 
   return <LocalDataContext.Provider value={value}>{children}</LocalDataContext.Provider>;
